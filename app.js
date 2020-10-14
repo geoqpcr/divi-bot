@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const { TOKEN } = process.env;
 
 const Discord = require('discord.js');

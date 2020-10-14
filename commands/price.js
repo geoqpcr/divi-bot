@@ -1,63 +1,113 @@
 'use strict';
 const got = require('got');
-const Discord = require('discord.js');
+const moment = require('moment-timezone');
+
+const utils = require('../shared/utils');
 
 const {
-  CG_URI,
-  CG_PRICE,
-  BOT_COLOR,
-  BOT_TITLE,
-  BOT_GIT_URL,
+  DATE_FORMAT,
   BOT_COMMAND1,
-  BOT_CG_PAIR1,
-  BOT_FOOTER_MSG,
-  BOT_FOOTER_IMG,
-  BOT_COMMAND1_DESC,
-  BOT_CG_PAIR1_RES_MAPPING
+  BASE_ENDPOINT,
+  PRICE_ENDPOINT,
+  BOT_COLOR_ERROR,
+  BOT_COLOR_SUCCESS,
+  BOT_COMMAND1_DESC
 } = process.env;
 
-function generateTemplate(fields) {
-  return new Discord.MessageEmbed()
-    .setColor(BOT_COLOR)
-    .setTitle(BOT_TITLE)
-    .setURL(BOT_GIT_URL)
-    .setThumbnail(BOT_FOOTER_IMG)
-    .addFields(fields)
-    .setTimestamp()
-    .setFooter(BOT_FOOTER_MSG, BOT_FOOTER_IMG);
-}
 
 // execute handler
 const execute = async (msg, args) => {
   try {
 
-    const result = await getPrice(`${BOT_CG_PAIR1}`);
-    
-    const usd = result[BOT_CG_PAIR1_RES_MAPPING];
-    let { usd: value } = usd;
+    const result = await getPrice();
+    const { rank, quotes } = result;
 
-    const fields = { 
-      name: 'Price',  
-      value: `$${value}` 
-    };
+    //console.log(rank, quotes);
 
-    const template = generateTemplate(fields);
+    const { BTC, USD } = quotes;
+
+    const BTC_lastUpdated = moment(BTC.lastUpdated).utc().format(DATE_FORMAT)
+    const USD_lastUpdated = moment(USD.lastUpdated).utc().format(DATE_FORMAT)
+
+    const fields = [
+      {
+        name: '🏆',
+        inline: false,
+        value: `#${rank}`
+      },
+      {
+        name: 'USD Price',
+        inline: true,
+        value: `$ ${USD.price.toFixed(5)}`
+      },
+      {
+        name: 'BTC Price',
+        inline: true,
+        value: `₿ ${BTC.price.toFixed(8)}`
+      },
+      {
+        name: '\u200b',
+        inline: false,
+        value: 'UTC'
+      },
+      {
+        name: 'Last updated',
+        inline: true,
+        value: `${USD_lastUpdated}`
+      },
+      {
+        name: 'Last updated',
+        inline: true,
+        value: `${BTC_lastUpdated}`
+      }
+    ];
+
+    const args = { fields, botColor: BOT_COLOR_SUCCESS };
+    const template = utils.botTemplate(args);
+
     msg.channel.send(template);
   } catch(error) {
-    throw(error);
+
+    const fields = [
+      {
+        name: '...',
+        inline: false,
+        value: 'sit tight · wait patiently'
+      },
+      {
+        name: '\u200b',
+        inline: false,
+        value: '\u200b'
+      },
+      {
+        name: '🦧 🌴 🦍',
+        inline: false,
+        value: 'Our team is working!'
+      }
+    ];
+
+    const args = { fields, botColor: BOT_COLOR_ERROR };
+    const template = utils.botTemplate(args);
+
+    msg.channel.send(template);
+    console.error('error', error);
+    //throw(error);
   }
 }
 
 // internal use
-const getPrice = (pairs) => {
+const getPrice = () => {
   return new Promise(async (resolve, reject) => {
     try {
 
-      const endpoint = `${CG_URI}${CG_PRICE}${pairs}`;
-      let { body } = await got(endpoint);
-      body = JSON.parse(body);
+      const endpoint = `${BASE_ENDPOINT}${PRICE_ENDPOINT}`;
+      const headers = { responseType: 'json' };
+      const { body } = await got(endpoint, headers);
 
-      return resolve(body);
+      const { rank, quotes } = body;
+      const data = { rank, quotes }
+
+      return resolve(data);
     } catch (error) {
       
       console.error('getPrice::ERROR', error);
@@ -70,5 +120,5 @@ const getPrice = (pairs) => {
 module.exports = {
   execute,
   name: BOT_COMMAND1,
-  description: BOT_COMMAND1_DESC,
+  description: BOT_COMMAND1_DESC
 };
