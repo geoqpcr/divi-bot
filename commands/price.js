@@ -9,7 +9,6 @@ const {
   BOT_COMMAND1,
   BASE_ENDPOINT,
   PRICE_ENDPOINT,
-  BOT_COLOR_ERROR,
   BOT_COLOR_SUCCESS,
   BOT_COMMAND1_DESC
 } = process.env;
@@ -68,27 +67,7 @@ const execute = async (msg, args) => {
     msg.channel.send(template);
   } catch(error) {
 
-    const fields = [
-      {
-        name: '...',
-        inline: false,
-        value: 'sit tight · wait patiently'
-      },
-      {
-        name: '\u200b',
-        inline: false,
-        value: '\u200b'
-      },
-      {
-        name: '🦧 🌴 🦍',
-        inline: false,
-        value: 'Our team is working!'
-      }
-    ];
-
-    const args = { fields, botColor: BOT_COLOR_ERROR };
-    const template = utils.botTemplate(args);
-
+    const template = utils.defaultErrorTemplate();
     msg.channel.send(template);
     console.error('error', error);
     //throw(error);
